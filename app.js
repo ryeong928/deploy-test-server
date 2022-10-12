@@ -47,7 +47,10 @@ io.on("connect", socket => {
     socket.room = undefined
   })
   // webrtc
-  socket.on("offer", (offer) => socket.to(socket.room).emit("offer", offer))
+  socket.on("offer", (offer) => {
+    console.log('offer to socket.room: ', socket.room)
+    socket.to(socket.room).emit("offer", offer)
+  })
   socket.on("answer", (answer) => socket.to(socket.room).emit("answer", answer))
   socket.on("ice", (ice) => socket.to(socket.room).emit("ice", ice))
 })
