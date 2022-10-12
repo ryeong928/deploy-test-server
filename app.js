@@ -39,10 +39,16 @@ io.on("connect", socket => {
   socket.on("join", (roomName) => {
     socket.room = roomName
     socket.join(roomName)
+    socket.to(roomName).emit('join')
   })
   socket.on("leave", () => {
+    console.log(`leave: ${socket.id}`)
     socket.leave(socket.room)
     socket.room = undefined
   })
+  // webrtc
+  socket.on("offer", (offer) => socket.to(socket.room).emit("offer", offer))
+  socket.on("answer", (answer) => socket.to(socket.room).emit("answer", answer))
+  socket.on("ice", (ice) => socket.to(socket.room).emit("ice", ice))
 })
 http.listen(PORT, () => console.log(`server listening on ${PORT}`))
