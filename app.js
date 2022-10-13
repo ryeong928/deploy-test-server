@@ -5,8 +5,9 @@ const http = createServer(app)
 const io = require("socket.io")(http, {cors: {origin: "*", credential: true}})
 const PORT = process.env.PORT || 4000
 const cors = require('cors')
-const { ExpressPeerServer } = require('peer')
-const peerServer = ExpressPeerServer(http, {debug: true, path: '/myapp'})
+
+let rooms = {}
+let users = []
 
 app.use(cors({
   origin: ["http://localhost:3000", "https://deploytest928.netlify.app"],
@@ -14,18 +15,15 @@ app.use(cors({
 }))
 app.use(express.json())
 app.use(express.urlencoded({extended: true}))
-app.use('/peerjs', peerServer)
 
 app.get("/", (req, res) => {
-  return res.send("deploy test 928")
+  return res.send("deploytest928")
+})
+app.get('/rooms', (req, res) => {
+  return res.send(Object.keys(rooms))
 })
 
-let rooms = {}
-let users = []
 
-function currentUsers(){
-  console.log('users: ', users.map(u => u.id))
-}
 
 io.on("connect", socket => {
   console.log(`new socket : ${socket.id}`)
@@ -58,3 +56,7 @@ io.on("connect", socket => {
   socket.on("ice", (ice) => socket.to(socket.room).emit("ice", ice))
 })
 http.listen(PORT, () => console.log(`server listening on ${PORT}`))
+
+function currentUsers(){
+  console.log('users: ', users.map(u => u.id))
+}
