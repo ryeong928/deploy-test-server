@@ -1,10 +1,9 @@
-const { createServer } = require('http')
+const PORT = process.env.PORT || 4000
 const express = require('express')
 const app = express()
-const http = createServer(app)
-const io = require("socket.io")(http, {cors: {origin: "*", credential: true}})
-const PORT = process.env.PORT || 4000
+const { Server } = require("ws")
 const cors = require('cors')
+const { v4 : uuid } = require('uuid')
 
 let rooms = {}
 let users = []
@@ -24,39 +23,56 @@ app.get('/rooms', (req, res) => {
 })
 
 
+const HTTP = app.listen(PORT, () => console.log(`server listening on ${PORT}`))
+const WSS = new Server({server: HTTP})
 
-io.on("connect", socket => {
-  console.log(`new socket : ${socket.id}`)
-  users.push(socket)
-  currentUsers()
-  // 해제
-  socket.on("disconnect", () => {
-    console.log(`disconnect : ${socket.id}`)
-    const idx = users.findIndex(u => u.id === socket.id)
-    users.splice(idx, 1)
-    currentUsers()
+WSS.on("connection", (ws) => {
+  ws.id = uuid()
+  users.push(ws)
+  console.log(`${ws.id} 접속: 총 ${users.length}명`)
+  ws.send(JSON.stringify({type: "connected", data: `${ws.id}`}))
+  ws.on('error', (err) => console.log(`${ws.id} error: ${err}`))
+  ws.on('close', () => {
+    if(ws.room) leaveRoom(ws)
+    disconnect(ws)
+    console.log(`${ws.id} 해제: 총 ${users.length}명`)
   })
-  // room
-  socket.on("join", (roomName) => {
-    socket.room = roomName
-    socket.join(roomName)
-    socket.to(roomName).emit('join')
+  // 메시지 처리
+  ws.on('message', (e) => {
+    const {type, data} = JSON.parse(e.toString())
+    if(type === "join"){
+      ws.room = data
+      if(!rooms[data]) rooms[data] = [ws]
+      else if(rooms[data].length === 1){
+        rooms[data].push(ws)
+        rooms[data].forEach(u => u.id !== ws.id && u.send(JSON.stringify({type: 'join'})))
+      }else{
+        ws.send(JSON.stringify({type: 'full'}))
+        delete ws.room
+      }
+    }
+    if(type === "leave" && ws.room) leaveRoom(ws)
+    if(type === "offer") return toTheOther(ws, {type: "offer", data})
+    if(type === "answer") return toTheOther(ws, {type: "answer", data})
+    if(type === "ice") return toTheOther(ws, {type: "ice", data})
   })
-  socket.on("leave", () => {
-    console.log(`leave: ${socket.id}`)
-    socket.leave(socket.room)
-    socket.room = undefined
-  })
-  // webrtc
-  socket.on("offer", (offer) => {
-    console.log('offer to socket.room: ', socket.room)
-    socket.to(socket.room).emit("offer", offer)
-  })
-  socket.on("answer", (answer) => socket.to(socket.room).emit("answer", answer))
-  socket.on("ice", (ice) => socket.to(socket.room).emit("ice", ice))
 })
-http.listen(PORT, () => console.log(`server listening on ${PORT}`))
 
-function currentUsers(){
-  console.log('users: ', users.map(u => u.id))
+function leaveRoom(ws){
+  if(!rooms[ws.room]) return
+  const idx = rooms[ws.room].findIndex(id => id === ws.id)
+  rooms[ws.room].splice(idx, 1)
+  if(rooms[ws.room].length === 0) delete rooms[ws.room]
+  delete ws.room
 }
+function disconnect(ws){
+  const idx = users.findIndex(u => u.id === ws.id)
+  users.splice(idx, 1)
+}
+function toTheOther(ws, msg){
+  rooms[ws.room].forEach(u => u.id !== ws.id && u.send(JSON.stringify(msg)))
+}
+/*
+  wss.clients 는 리스트가 아닌 Set이므로, 개수를 셀 때 length 대신 size
+
+*/
