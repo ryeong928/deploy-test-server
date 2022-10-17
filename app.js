@@ -29,12 +29,13 @@ const WSS = new Server({server: HTTP})
 WSS.on("connection", (ws) => {
   ws.id = uuid()
   users.push(ws)
-  console.log(`${ws.id} 접속: 총 ${users.length}명`)
+  console.log(`${ws.id} 접속: 총 ${users.length}명, ${WSS.clients.length}명`)
   ws.send(JSON.stringify({type: "connected", data: `${ws.id}`}))
   ws.on('error', (err) => console.log(`${ws.id} error: ${err}`))
   ws.on('close', () => {
     if(ws.room) leaveRoom(ws)
-    disconnect(ws)
+    const idx = users.findIndex(u => u.id === ws.id)
+    users.splice(idx, 1)
     console.log(`${ws.id} 해제: 총 ${users.length}명`)
   })
   // 메시지 처리
@@ -64,10 +65,6 @@ function leaveRoom(ws){
   rooms[ws.room].splice(idx, 1)
   if(rooms[ws.room].length === 0) delete rooms[ws.room]
   delete ws.room
-}
-function disconnect(ws){
-  const idx = users.findIndex(u => u.id === ws.id)
-  users.splice(idx, 1)
 }
 function toTheOther(ws, msg){
   rooms[ws.room].forEach(u => u.id !== ws.id && u.send(JSON.stringify(msg)))
