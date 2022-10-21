@@ -4,6 +4,7 @@ const app = express()
 const { Server } = require("ws")
 const cors = require('cors')
 const { v4 : uuid } = require('uuid')
+const deployURL = "https://deploytest928.herokuapp.com"
 
 let rooms = {}
 let users = []
@@ -22,9 +23,18 @@ app.get('/rooms', (req, res) => {
   return res.send(Object.keys(rooms))
 })
 
-
 const HTTP = app.listen(PORT, () => console.log(`server listening on ${PORT}`))
 const WSS = new Server({server: HTTP})
+
+/*
+기본적으로 WebSocket은 한번에 64kb 이상 데이터를 보낼 경우 보내지지 않는 경우가 있습니다\
+const WSS = new Server({
+  httpServer: HTTP,
+  maxReceivedFrameSize: number,
+  maxReceivedMessageSize: 10 * 1024 * 1024,
+  autoAcceptConnections: false,
+})
+*/
 
 WSS.on("connection", (ws) => {
   ws.id = uuid()
