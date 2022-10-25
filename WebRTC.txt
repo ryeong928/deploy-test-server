@@ -1,0 +1,32 @@
+< WebRTC >
+
+- WebRTC, short for Web Real-Time Communication, is both an API and a Protocol.
+- The WebRTC protocol is a set of rules for two WebRTC agents to negotiate bi-directional secure real-time communication.
+- The WebRTC API then allows developers to use the WebRTC protocol.
+
+- WebRTC API : https://www.w3.org/TR/webrtc/#intro
+- WebRTC OpenBook : https://webrtcforthecurious.com/docs/01-what-why-and-how/
+
+- WebRTC Protocol's sequential four big steps
+  Signaling
+  Connecting
+  Securing
+  Communicating
+
+
+- new RTCPeerConnection : the top-level “WebRTC Session”. It contains all the protocols.
+
+- addTrack
+  it creates a new RTP stream.
+  A random Synchronization Source (SSRC) will be generated for this stream.
+  This stream will then be inside the SDP
+  Each call to addTrack will create a new SSRC and media section.
+  Immediately after an SRTP Session is established, these media packets will start being encrypted using SRTP and sent via ICE.
+
+
+- createDataChannel 
+  it creates a new SCTP stream if no SCTP association exists.
+  Immediately after a DTLS Session is established, the SCTP association will start sending packets encrypted with DTLS via ICE.
+
+- createOffer
+  it generates a SDP of local state

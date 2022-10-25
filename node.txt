@@ -1,0 +1,172 @@
+@@ Node.js
+  Node.js는 싱글스레드의 이벤트 루프 기반의 논 블로킹 I/O를 모델로 함으로, I/O 요청이 많은 서버에 효율적이다.
+  하지만 싱글스레드를 사용하기 때문에, CPU 연산이 많거나 복잡한 프로그램에는 적합하지 못하게 된다. 
+  즉 채팅 혹은 특정 값의 변화와 같은 많은 양의 작은 데이터를 주고 받는 프로그램에 Node.js는 효율적이다.
+  CPU 자원을 많이 사용하는 작업으로 인해 이벤트 루프를 차단할 가능성이 있기에, CPU작업과 I/O작업을 구분하여
+
+
+@@ Node의 Blocking I/O
+
+블로킹 I/O는 현재 스레드의 수행을 중단시키고, 지속적으로 응답을 기다린다
+블로킹 I/O의 종류는 다음과 같다
+  파일 읽기
+  데이터베이스 질의
+  소켓 요청
+  원격 서비스 접속
+Node는 블로킹 I/O로 인한 지연을 피하고자 이벤트 콜백을 사용한다
+Node는 백그라운드에서 스레드 풀을 구현한다
+이벤트 큐에서 이벤트나 블록 I/O 이벤트가 얻어지면 Node는 메인 이벤트 루프 스레드가 아닌, 스데르 풀에서 스레드 한 개를 꺼내어 해당 함수를 수행한다
+이런 구조로 인해 이벤트 큐 내에 모든 잔여 이벤트들의 블로킹 I/O를 방지할 수 있다
+
+
+@@ 이벤트 큐에 작업을 추가
+
+이벤트 큐의 job을 스케줄링하기 위해 process.nextTick(cb) 함수가 있다
+이 함수는 이벤트 루프의 다음 사이클에서 작업을 수행하도록 스케줄링을 한다
+
+이벤트는 events 모듈에 포함된 EventEmitter 객체를 사용해 발생시킬 수 있다
+
+const events = require('events')
+const emitter = new events.EventEmitter()
+emitter.emit('event')
+
+이벤트를 발생시키는 객체 인스턴스는, 해당 이벤트에 대한 리스너를 추가할 수 있다
+emitter.addListener/on/once
+
+
+* JSON 문자열을 자바스크립트 객체를 문자열로 나타낸 것이다
+
+
+@@ stream 모듈
+
+-readable stream
+데이터를 읽기 위해 read(size) 함수를 제공한다
+size는 스트림에서 읽을 바이트의 크기를 지정한다
+read 함수는 String 객체, Buffer 객체, null을 반환한다
+
+-readable stream events
+  readable : 스트림에서 데이터 청크를 읽을 수 있을 때 발생
+  data : 데이터 이벤트 핸들러가 추가된 것을 제외하면 readable과 유사
+  end : 스트림에서 데이터가 더이상 소비할 데이터가 없을 때 발생
+  close : 파일 같은 기본 리소스가 닫힐 때 발생
+  error : 데이터를 수신 시 오류가 발생할 때 발생
+
+-readable stream methods : 스트림 객체가 제공하는 함수
+  read([size]) : 스트림에서 데이터를 읽는다
+  setEncoding(encoding) : read 메서드 요청 결과를 String 형태로 반호나 시 인코딩 형태
+  pause() : 객체에서 생성되는 data 이벤트를 중지
+  resume() : 객체에서 생성되는 data 이벤트를 
+  pipe(destination, [options]) : 읽기 스트림을 destination 필드에 지정된 쓰기 스트림 객체에 연결
+  unpipe([destination]) : 쓰기 스트림 객체 제거
+
+-writable stream
+데이터를 스트림에 쓰기 위한 write(chunk, [encoding], [callback]) 함수를 제공한다
+데이터를 성공적으로 썼을 때, true를 반환하며, 등록한 callback을 실행한다
+
+-writable stream events
+  drain : write 호출이 false를 반환한 이후 다시 데이터를 쓰기 가능한 상태라는 것을 리스너 함수에 알려주기 위해 사용
+  finish : 모든 데이터가 비워지고 더 이상 쓸 데이터가 없을 경우 쓰기 스트림 객체에 end() 가 호출된 후 생성된다
+  pipe : 읽기 스트림에 쓰기 destination 연결을 위해 pipe 함수 호출 후 발생
+  unpipe : 읽기 스트림에서 쓰기 destination 제거를 위해 unpipe 함수 호출 후 발생
+
+-writable stream methods
+  write(chunk, [encoding], [callback]) : 스트림 객체의 데이터 위치에 데이터 청크를 쓴다. 데이터는 String | Buffer 형태다. 데이터가 비워지면 callback을 호출한다
+  end(chunk, [encoding], [callback]) : 데이터를 더이상 수용하지 않고, finish 이벤트를 방출하는 것을 제외하면 write 함수와 동일
+
+
+@@ process 모듈
+
+process 모듈은 require를 사용하지 않고도, Node 애플리케이션에 접근할 수 있는 전역객체다
+동작중인 프로세스에 접근할 수 있는 권한을 제공한다
+
+
+@@ child_process 모듈
+
+ChildProcess 라는 새로운 클래스를 제공한다
+
+-ChildProcess 객체에서 방출되는 이벤트 : message, error, exit, close, disconnect
+
+-ChildProcess 객체에서 호출 가능한 함수 : kill([signal]), send(message, [sendHandle]), disconnect()
+
+-ChildProcess 객체에서 접근 가능한 프로퍼티 : stdin, stdout, strerr, pid, connected
+
+exec() 을 사용해 다른 프로세스의 시스템 명령을 실행 : child_process.exec(command, [options], callback) : ChildProcess 객체를 반환한다 
+Node 프로세스에서 exec() 함수를 사용해, 서브셸에서 시스템 명령을 실행한다
+
+execFile() 을 사용해 다른 프로세스의 실행 가능 파일을 실행 : child_process.execFile(file, args, options, callback) : ChildProcess 객체를 반환한다
+
+spawn() 을 사용해 다른 Node 객체에서 프로세스를 실행 : child_process.spawn(command, [args], [options]) : ChildProcess 객체를 반환
+스폰은 새 프로세스와 기존 프로세스간에 stdio, stdout, stderr 파이프를 만든 후, spawn() 함수를 사용해 새로운 프로세스의 파일을 실행한다
+
+
+@@ os 모듈 : 운영체제의 정보를 얻어오는 함수를 제공한다
+
+@@ util 모듈 : 다양한 문자열을 처리하는 함수를 제공한다
+
+
+@@ Node.js Scaling
+
+1. Profile and Monitor your application : measure the current level of performance by running different kinds of tests below.
+
+  -Load testing : referes to the practice of simulating the expected usage of a system and measuring its response as the workload increases.
+  -Stress testing : designed to measure how a system performs beyond the limits of normal working conditions.
+    its goal is to determine how much the system can handle before it fails and how it attempts to recover from a failure.
+  -Spike testing : helps to test the behavior of an application when it receives a drastic increase or decrease in load.
+  -Scalability testing : used to find the point at which the application stops scaling and identify the reasons behind it.
+  -Volume testing : determines if a system can cope with large amounts of data.
+  -Endurance testing : helps evaluate the behavior of a software application under sustained load for a long period, to catch problems such as memory leaks.
+
+performing those tests will provide you with several important metrics, such as:
+  -response times
+  -average latency
+  -error rates
+  -requests per second
+  -throughput
+  -CPU and memory usage
+  -concurrent users
+and more
+
+2. Reduce Latency through caching : Caching is most effective for data that does not change very often.
+  -> node-cache, redis, memcached
+
+3. Use timeouts when dealing with I/O operations
+
+4. Don't server static assets with Node.js
+
+  Node.js wasn't designed with this use case in mind, so serving assets from the main application consumes valuable resources and holds up important business computations. 
+  Offload the task of serving static files to a web server like Nginx.
+  Another option to serve static files is to set up a CDN proxy like Amazon CloudFront.
+
+5. Use clustering to improve throughput
+
+  for more robust management of Node.js clusters, use the pm2 process manager for Node.js.
+  It uses the cluster module under the hood and takes care of spawning workers, stopping or restarting workers, and distributing the incoming load between the workers.
+
+6. Scale across multiple machines with a load balancer
+
+7. Utilize worker threads for CPU-intensive tasks
+
+
+@@ memory management in javascript
+
+memory is mainly categorized into Stack and Heap memory
+-stack : where static data, including method/function frames, primitive values, and pointers to objects are stored. managed by OS
+-heap : where V8 stores objects or dynamic data and Garbage Collection takes place
+
+memory leak : an useless block of memory on the heap that is no longer used by the application and hasn't been returned to the OS by the garbage collector. 
+  An accumulation of such blocks over time could lead to the application not having enough memory to work with or even your OS not having enough memory to allocate, leading to slowdowns and/or crashing of the application or even the OS.
+
+Automatic memory management like garbage collection in V8 aims to avoid such memory leaks.
+
+
+@@ child process, cluster, worker threads
+
+  child process : create multiple sub processes
+  cluster : create multiple worker processes on top of child process
+  worker thread : create multiple threads for one process
+
+
+@@ good
+
+
+++ 개인적인 생각이지만 서버 개발자로서 주니어 개발자를 졸업하기 위한 요건이 있다면, 바로 네트워크에서 패킷의 이동을 제대로 시뮬레이션할 수 있는 능력이라고 생각합니다. 
