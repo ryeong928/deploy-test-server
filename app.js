@@ -65,7 +65,10 @@ WSS.on("connection", (ws) => {
         delete ws.room
       }
     }
-    if(type === "leave" && ws.room) leaveRoom(ws)
+    if(type === "leave" && ws.room) {
+      leaveRoom(ws)
+      return toTheOther(ws, {type, data})
+    }
     if(type === "offer") return toTheOther(ws, {type, data})
     if(type === "answer") return toTheOther(ws, {type, data})
     if(type === "ice") return toTheOther(ws, {type, data})
