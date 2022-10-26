@@ -7,11 +7,6 @@ const { v4 : uuid } = require('uuid')
 const deployURL = "https://deploytest928.herokuapp.com"
 const Router = require('./routes')
 
-
-let rooms = {}
-let broadcast = []
-let users = []
-
 app.use(cors({
   origin: ["http://localhost:3000", "https://deploytest928.netlify.app"],
   credentials: true
@@ -19,6 +14,9 @@ app.use(cors({
 app.use(express.json()) // for parsing application/json
 app.use(express.urlencoded({extended: true})) // for parsing application/x-www-form-urlencoded
 app.use('/files', Router.files)
+
+let rooms = {}
+let users = []
 
 app.get("/", (req, res) => {
   return res.send("deploytest928")
@@ -30,35 +28,25 @@ app.get('/rooms', (req, res) => {
 const HTTP = app.listen(PORT, () => console.log(`server listening on ${PORT}`))
 const WSS = new Server({server: HTTP})
 
-/*
-기본적으로 WebSocket은 한번에 64kb 이상 데이터를 보낼 경우 보내지지 않는 경우가 있습니다
-const WSS = new Server({
-  httpServer: HTTP,
-  maxReceivedFrameSize: number,
-  maxReceivedMessageSize: 10 * 1024 * 1024,
-  autoAcceptConnections: false,
-})
-*/
-
 WSS.on("connection", (ws) => {
+  // 소켓 연결 처리
   ws.id = uuid()
   users.push(ws)
   console.log(`${ws.id} 접속: 총 ${users.length}명, ${WSS.clients.length}명`)
   ws.send(JSON.stringify({type: "connected", data: `${ws.id}`}))
-
+  // 소켓 에러/종료 처리
   ws.on('error', (err) => console.log(`${ws.id} error: ${err}`))
   ws.on('close', () => {
     if(ws.room) leaveRoom(ws)
-    leaveBroadcast(ws)
     const idx = users.findIndex(u => u.id === ws.id)
     users.splice(idx, 1)
     console.log(`${ws.id} 해제: 총 ${users.length}명`)
   })
-
-  // 메시지 처리
+  // 수신 메시지 처리
   ws.on('message', (e) => {
     const {type, data, sub} = JSON.parse(e.toString())
     console.log('socket msg: ', type, data, sub)
+    // room 처리
     if(type === "join"){
       ws.room = data
       if(!rooms[data]) rooms[data] = [ws]
@@ -74,28 +62,11 @@ WSS.on("connection", (ws) => {
       toTheOther(ws, {type, data})
       return leaveRoom(ws)
     }
+    // webrtc 처리
     if(type === "offer") return toTheOther(ws, {type, data})
     if(type === "answer") return toTheOther(ws, {type, data})
     if(type === "ice") return toTheOther(ws, {type, data})
     if(type === "peercontrol") return toTheOther(ws, {type, data})
-    // broadcast
-    if(type === "broadcast"){
-      if(data === "join"){
-        // 입장 체크
-        const index = broadcast.findIndex(w => w.id === ws.id)
-        if(index !== -1) {
-          broadcast.splice(index, 1)
-          return send(ws, {type: 'broadcast', data: 'error'})
-        }
-        // 정상 로직
-        broadcast.push(ws)
-        if(broadcast.length === 1) send(ws, {type: 'broadcast', data: 'host'})
-        else send(ws, {type: 'broadcast', data: 'guest'})
-        // finally
-        broadcastAll()
-      }
-      if(data === "leave") leaveBroadcast(ws)
-    }
   })
 })
 
@@ -106,24 +77,8 @@ function leaveRoom(ws){
   if(rooms[ws.room].length === 0) delete rooms[ws.room]
   delete ws.room
 }
-function send(ws, msg){
-  ws.send(JSON.stringify(msg))
-}
 function toTheOther(ws, msg){
   rooms[ws.room].forEach(u => u.id !== ws.id && u.send(JSON.stringify(msg)))
-}
-function leaveBroadcast(ws){
-  const idx = broadcast.findIndex(w => w.id === ws.id)
-  if(idx === -1) return
-  else broadcast.splice(idx, 1)
-  broadcastAll()
-}
-function broadcastAll(msg){
-  const data = {
-    host: broadcast[0].id,
-    particapants: broadcast.length
-  }
-  broadcast.forEach(w => send(w, {type: 'broadcast', data: 'all', sub: msg || data}))
 }
 /*
   wss.clients 는 리스트가 아닌 Set이므로, 개수를 셀 때 length 대신 size
