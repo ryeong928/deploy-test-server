@@ -32,7 +32,8 @@ WSS.on("connection", (ws) => {
   // 소켓 연결 처리
   ws.id = uuid()
   users.push(ws)
-  console.log(`${ws.id} 접속: 총 ${users.length}명, ${WSS.clients.length}명`)
+  console.log(`${ws.id} 접속: 총 ${users.length}명, ${WSS.clients.length}명`)y
+  
   ws.send(JSON.stringify({type: "connected", data: `${ws.id}`}))
   // 소켓 에러/종료 처리
   ws.on('error', (err) => console.log(`${ws.id} error: ${err}`))
