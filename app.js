@@ -7,10 +7,7 @@ const { v4 : uuid } = require('uuid')
 const deployURL = "https://deploytest928.herokuapp.com"
 const Router = require('./routes')
 
-app.use(cors({
-  origin: ["http://localhost:3000", "https://deploytest928.netlify.app"],
-  credentials: true
-}))
+app.use(cors())
 app.use(express.json()) // for parsing application/json
 app.use(express.urlencoded({extended: true})) // for parsing application/x-www-form-urlencoded
 app.use('/files', Router.files)
@@ -32,7 +29,7 @@ WSS.on("connection", (ws) => {
   // 소켓 연결 처리
   ws.id = uuid()
   users.push(ws)
-  console.log(`${ws.id} 접속: 총 ${users.length}명, ${WSS.clients.length}명`)y
+  console.log(`${ws.id} 접속: 총 ${users.length}명, ${WSS.clients.length}명`)
   
   ws.send(JSON.stringify({type: "connected", data: `${ws.id}`}))
   // 소켓 에러/종료 처리
