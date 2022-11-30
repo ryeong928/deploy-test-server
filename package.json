@@ -4,7 +4,7 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "buffer": "node ./buffers/index.js",
+    "buffer": "node ./buffer/index.js",
     "cp": "node ./child_process/index.js",
     "cluster": "node ./cluster/index.js",
     "crypto": "node ./crypto/index.js",
